@@ -24,10 +24,30 @@ file(COPY ${CMAKE_SOURCE_DIR}/assets
 
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
+find_library(LIS_LIBRARY 
+    NAMES lis
+    PATHS 
+        /usr/local/lib 
+        /usr/lib
+    REQUIRED
+)
+
+find_path(LIS_INCLUDE_DIR 
+    NAMES lis.h
+    PATHS 
+        /usr/local/include 
+        /usr/include
+    REQUIRED
+)
+
 add_executable(main src/main.cpp)
 
-target_link_libraries(main PRIVATE Eigen3::Eigen)
+target_link_libraries(main PRIVATE 
+		Eigen3::Eigen 
+    ${LIS_LIBRARY}
+)
 
 target_include_directories(main PRIVATE 
     ${CMAKE_SOURCE_DIR}/external
+    ${LIS_INCLUDE_DIR}
 )

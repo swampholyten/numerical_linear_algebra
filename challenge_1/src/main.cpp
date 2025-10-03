@@ -1,4 +1,5 @@
 #include <Eigen/Eigen>
+#include <lis.h>
 #include <fstream>
 #include <iostream>
 #include <vector>
@@ -190,6 +191,10 @@ public:
     Eigen::MatrixXd sharpened_img = vector_to_image(sharpened);
     save_image(sharpened_img, "sharpened_image.png");
 
+    export_sparse_matrix_to_mtx_format(a2_temp, "A2.mtx");
+    Eigen::VectorXd w_vec = reshape_image_to_vector(noisy_image);
+    export_vector_to_mtx(w_vec, "w.mtx");
+
     this->a2 = a2_temp;
   }
 
@@ -236,6 +241,8 @@ public:
     Eigen::SparseMatrix<double> a3_transpose = a3_temp.transpose();
     bool symmetric = (a3_temp - a3_transpose).norm() < 1e-10;
     std::cout << "Is A3 symmetric? " << (symmetric ? "Yes" : "No") << std::endl;
+    std::cout << "Sharpening matrix A2 non-zero entries: " << a3_temp.nonZeros()
+              << std::endl;
 
     Eigen::VectorXd v = reshape_image_to_vector(original_image);
     Eigen::VectorXd edges = a3_temp * v;
@@ -271,7 +278,80 @@ public:
     Eigen::MatrixXd result_img = vector_to_image(y);
     save_image(result_img, "eigen_solution.png");
   }
+
+  void solve_with_lis() {
+    printf("Solving with LIS library...\n");
+
+    const int n = rows * cols;
+    Eigen::VectorXd w_vec = reshape_image_to_vector(noisy_image);
+
+    LIS_MATRIX A;
+    LIS_VECTOR b, x;
+    LIS_SOLVER solver;
+    int argc = 1;
+    char *argv_local[] = {(char *)"program", nullptr};
+    char **argv = argv_local;
+
+    if(lis_initialize(&argc, &argv) != LIS_SUCCESS){
+      std::cerr << "LIS initialization failed" << std::endl;
+      return;
+    }
+    else{
+      printf("LIS initialized successfully.\n");
+    }
+    lis_matrix_create(0, &A);
+    lis_matrix_set_size(A, 0, n);
+
+    for (int k = 0; k < a2.outerSize(); ++k) {
+      for (Eigen::SparseMatrix<double>::InnerIterator it(a2, k); it; ++it) {
+        lis_matrix_set_value(LIS_INS_VALUE, it.row(), it.col(), it.value(), A);
+      }
+    }
+
+    lis_matrix_set_type(A, LIS_MATRIX_CSR);
+    lis_matrix_assemble(A);
+
+    lis_vector_create(0, &b);
+    lis_vector_set_size(b, 0, n);
+    for (int i = 0; i < n; ++i) {
+      lis_vector_set_value(LIS_INS_VALUE, i, w_vec(i), b);
+    }
+
+    lis_vector_create(0, &x);
+    lis_vector_set_size(x, 0, n);
+
+    lis_solver_create(&solver);
+    lis_solver_set_option((char*)"-i bicgstab -p ilu -tol 1.0e-13", solver);
+    int status = lis_solve(A, b, x, solver);
+    if (status != LIS_SUCCESS) {
+      std::cerr << "LIS solve failed, status: " << status << std::endl;
+    }
+    int iters = 0;
+    double resid = 0.0;
+    lis_solver_get_iter(solver, &iters);
+    lis_solver_get_residualnorm(solver, &resid);
+    std::cout << "LIS solve A2*x = w" << std::endl;
+    std::cout << "Iterations: " << iters << std::endl;
+    std::cout << "Final residual: " << resid << std::endl;
+
+    Eigen::VectorXd x_vec(n);
+    for (int i = 0; i < n; ++i) {
+      double xi = 0.0;
+      lis_vector_get_value(x, i, &xi);
+      x_vec(i) = xi;
+    }
+    Eigen::MatrixXd img = vector_to_image(x_vec);
+    save_image(img, "lis_solution.png");
+
+    lis_solver_destroy(solver);
+    lis_matrix_destroy(A);
+    lis_vector_destroy(b);
+    lis_vector_destroy(x);
+    lis_finalize();
+  }
 };
+
+ 
 
 int main() {
   ChallengeOne c;
@@ -294,7 +374,7 @@ int main() {
   c.apply_sharpening_filter();
 
   // Point 9, 10
-  // TODO: Use LIS lib for solving the linear system
+  c.solve_with_lis();
 
   // Point 11, 12
   c.apply_edge_detection_filter();
