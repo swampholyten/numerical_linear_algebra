@@ -1,7 +1,7 @@
 #include <Eigen/Eigen>
-#include <lis.h>
 #include <fstream>
 #include <iostream>
+#include <lis.h>
 #include <vector>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
@@ -198,8 +198,9 @@ public:
     this->a2 = a2_temp;
   }
 
-  void export_sparse_matrix_to_mtx_format(const Eigen::SparseMatrix<double> &mat,
-                                          const std::string &filename) {
+  void
+  export_sparse_matrix_to_mtx_format(const Eigen::SparseMatrix<double> &mat,
+                                     const std::string &filename) {
     std::ofstream file(filename);
     file << "%%MatrixMarket matrix coordinate real general" << std::endl;
     file << mat.rows() << " " << mat.cols() << " " << mat.nonZeros()
@@ -292,11 +293,10 @@ public:
     char *argv_local[] = {(char *)"program", nullptr};
     char **argv = argv_local;
 
-    if(lis_initialize(&argc, &argv) != LIS_SUCCESS){
+    if (lis_initialize(&argc, &argv) != LIS_SUCCESS) {
       std::cerr << "LIS initialization failed" << std::endl;
       return;
-    }
-    else{
+    } else {
       printf("LIS initialized successfully.\n");
     }
     lis_matrix_create(0, &A);
@@ -321,7 +321,7 @@ public:
     lis_vector_set_size(x, 0, n);
 
     lis_solver_create(&solver);
-    lis_solver_set_option((char*)"-i bicgstab -p ilu -tol 1.0e-13", solver);
+    lis_solver_set_option((char *)"-i bicgstab -p ilu -tol 1.0e-13", solver);
     int status = lis_solve(A, b, x, solver);
     if (status != LIS_SUCCESS) {
       std::cerr << "LIS solve failed, status: " << status << std::endl;
@@ -350,8 +350,6 @@ public:
     lis_finalize();
   }
 };
-
- 
 
 int main() {
   ChallengeOne c;
