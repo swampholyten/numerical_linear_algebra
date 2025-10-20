@@ -12,12 +12,15 @@
 
 class ChallengeTwo {
 private:
-  Eigen::MatrixXd Ag;
-  Eigen::VectorXd vg;
-  Eigen::MatrixXd Dg;
-  Eigen::MatrixXd Lg;
+  Eigen::MatrixXd Ag; // Adjacency matrix for small graph
+  Eigen::VectorXd vg; // Degree vector for small graph
+  Eigen::MatrixXd Dg; // Degree diagonal matrix for small graph
+  Eigen::MatrixXd Lg; // Laplasian for small graph
 
-  Eigen::SparseMatrix<double> As;
+  Eigen::SparseMatrix<double> As; // Adjacency matrix for social network
+  Eigen::VectorXd vs;             // Degree vector for social network
+  Eigen::SparseMatrix<double> Ds; // Degree diagonal matrix for social network
+  Eigen::SparseMatrix<double> Ls; // Laplasian for social network
 
 public:
   void create_small_graph() {
@@ -80,9 +83,6 @@ public:
 
     std::cout << "Smallest eigenvalue: " << eigenvalues.minCoeff() << std::endl;
     std::cout << "Biggest eigenvalue: " << eigenvalues.maxCoeff() << std::endl;
-    std::cout << "Comment: One eigenvalue is zero (graph is connected), others "
-                 "are positive."
-              << std::endl;
   }
 
   void find_fielder_vector() {
@@ -123,6 +123,34 @@ public:
     std::cout << "  Frobenius norm (Eigen's norm()): " << As.norm()
               << std::endl;
   }
+
+  void create_social_network_laplasian() {
+    int n = As.rows();
+    vs = Eigen::VectorXd::Zero(n);
+
+    for (int i = 0; i < n; i++) {
+      vs(i) = As.row(i).sum();
+    }
+
+    std::vector<Eigen::Triplet<double>> triplets;
+    for (int i = 0; i < n; i++) {
+      triplets.push_back(Eigen::Triplet<double>(i, i, vs(i)));
+    }
+
+    Ds.resize(n, n);
+    Ds.setFromTriplets(triplets.begin(), triplets.end());
+
+    Ls = Ds - As;
+
+    Eigen::SparseMatrix<double> LsT = Ls.transpose();
+    Eigen::SparseMatrix<double> diff = Ls - LsT;
+    bool is_symmetric = diff.norm() < 1e-10;
+
+    std::cout << "Is Ls symmetric? " << (is_symmetric ? "Yes" : "No")
+              << std::endl;
+    std::cout << "Number of nonzero entries in Ls: " << Ls.nonZeros()
+              << std::endl;
+  }
 };
 
 int main() {
@@ -143,6 +171,9 @@ int main() {
 
   // Point 5
   c2.load_social_network_matrix("assets/social.mtx");
+
+  // Point 6
+  c2.create_social_network_laplasian();
 
   return 0;
 }
