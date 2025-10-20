@@ -10,6 +10,9 @@
 class ChallengeTwo {
 private:
   Eigen::MatrixXd Ag;
+  Eigen::VectorXd vg;
+  Eigen::MatrixXd Dg;
+  Eigen::MatrixXd Lg;
 
 public:
   void create_small_graph() {
@@ -36,6 +39,33 @@ public:
     double frobenius_norm = Ag.norm();
     std::cout << "Frobenius norm of Ag is: " << frobenius_norm << std::endl;
   }
+
+  void create_graph_laplasian() {
+    vg = Ag.rowwise().sum();
+
+    Dg = Eigen::MatrixXd::Zero(9, 9);
+
+    for (int i = 0; i < 9; i++) {
+      Dg(i, i) = vg(i);
+    }
+
+    // L = D - A
+    Lg = Dg - Ag;
+
+    Eigen::VectorXd x = Eigen::VectorXd::Ones(9);
+    Eigen::VectorXd y = Lg * x;
+
+    double euclidean_norm = y.norm();
+
+    bool is_symmetric = (Lg - Lg.transpose()).norm() < 1e-10;
+
+    std::cout << "Is Lg symmetric? " << (is_symmetric ? "Yes" : "No")
+              << std::endl;
+
+    std::cout << "Comment: The Laplacian is symmetric and y≈0 because L*1=0 "
+                 "(fundamental property)."
+              << std::endl;
+  }
 };
 
 int main() {
@@ -44,6 +74,12 @@ int main() {
 
   // Point 1
   c2.create_small_graph();
+
+
+  // Point 2
+  c2.create_graph_laplasian();
+
+
 
   return 0;
 }
