@@ -1,6 +1,9 @@
-#include <Eigen/Eigen>
+#include <Eigen/Dense>
+#include <Eigen/Eigenvalues>
+#include <Eigen/Sparse>
 #include <iostream>
 #include <lis.h>
+#include <unsupported/Eigen/SparseExtra>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
@@ -13,6 +16,8 @@ private:
   Eigen::VectorXd vg;
   Eigen::MatrixXd Dg;
   Eigen::MatrixXd Lg;
+
+  Eigen::SparseMatrix<double> As;
 
 public:
   void create_small_graph() {
@@ -108,6 +113,16 @@ public:
       }
     }
   }
+
+  void load_social_network_matrix(const std::string &filename) {
+    bool _loaded = Eigen::loadMarket(As, filename);
+
+    std::cout << "Matrix properties:" << std::endl;
+    std::cout << "  Dimensions: " << As.rows() << "x" << As.cols() << std::endl;
+
+    std::cout << "  Frobenius norm (Eigen's norm()): " << As.norm()
+              << std::endl;
+  }
 };
 
 int main() {
@@ -123,8 +138,11 @@ int main() {
   // Point 3
   c2.find_eigenvalues();
 
-	// Point 4
-	c2.find_fielder_vector();
+  // Point 4
+  c2.find_fielder_vector();
+
+  // Point 5
+  c2.load_social_network_matrix("assets/social.mtx");
 
   return 0;
 }
