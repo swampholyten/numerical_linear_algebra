@@ -61,9 +61,22 @@ public:
 
     std::cout << "Is Lg symmetric? " << (is_symmetric ? "Yes" : "No")
               << std::endl;
+  }
 
-    std::cout << "Comment: The Laplacian is symmetric and y≈0 because L*1=0 "
-                 "(fundamental property)."
+  void find_eigenvalues() {
+    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(Lg);
+
+    if (solver.info() != Eigen::Success) {
+      std::cerr << "Eigen value computation failed" << std::endl;
+      return;
+    }
+
+    Eigen::VectorXd eigenvalues = solver.eigenvalues();
+
+    std::cout << "Smallest eigenvalue: " << eigenvalues.minCoeff() << std::endl;
+    std::cout << "Biggest eigenvalue: " << eigenvalues.maxCoeff() << std::endl;
+    std::cout << "Comment: One eigenvalue is zero (graph is connected), others "
+                 "are positive."
               << std::endl;
   }
 };
@@ -75,11 +88,11 @@ int main() {
   // Point 1
   c2.create_small_graph();
 
-
   // Point 2
   c2.create_graph_laplasian();
 
-
+  // Point 3
+  c2.find_eigenvalues();
 
   return 0;
 }
