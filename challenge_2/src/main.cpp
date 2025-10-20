@@ -79,6 +79,35 @@ public:
                  "are positive."
               << std::endl;
   }
+
+  void find_fielder_vector() {
+    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(Lg);
+    Eigen::VectorXd eigenvalues = solver.eigenvalues();
+    Eigen::MatrixXd eigenvectors = solver.eigenvectors();
+
+    double second_smallest = 1e10;
+    int second_smallest_idx = -1;
+
+    for (int i = 0; i < eigenvalues.size(); i++) {
+      if (eigenvalues(i) > 1e-10 && eigenvalues(i) < second_smallest) {
+        second_smallest = eigenvalues(i);
+        second_smallest_idx = i;
+      }
+    }
+
+    std::cout << "Smallest strictly positive eigenvalue: " << second_smallest
+              << std::endl;
+
+    if (second_smallest_idx >= 0) {
+      Eigen::VectorXd fiedler = eigenvectors.col(second_smallest_idx);
+      std::cout << "Fielder vector: " << std::endl;
+      for (int i = 0; i < fiedler.size(); i++) {
+        std::cout << " Node " << (i + 1) << ": " << fiedler(i)
+                  << (fiedler(i) > 0 ? "(positive)" : "(negative)")
+                  << std::endl;
+      }
+    }
+  }
 };
 
 int main() {
@@ -93,6 +122,9 @@ int main() {
 
   // Point 3
   c2.find_eigenvalues();
+
+	// Point 4
+	c2.find_fielder_vector();
 
   return 0;
 }
