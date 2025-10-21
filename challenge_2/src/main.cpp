@@ -151,9 +151,56 @@ public:
     std::cout << "Number of nonzero entries in Ls: " << Ls.nonZeros()
               << std::endl;
   }
+
+  void find_largest_eigenvalues() {
+    Ls.coeffRef(0, 0) += 0.2;
+
+    Eigen::saveMarket(Ls, "Ls_perturbed.mtx");
+    std::cout << "Exported perturbed Laplacian to Ls_perturbed.mtx"
+              << std::endl;
+
+    LIS_MATRIX A;
+    LIS_VECTOR x;
+    LIS_ESOLVER esolver;
+    LIS_INT n = Ls.rows();
+    LIS_INT iter;
+    LIS_REAL evalue;
+
+    lis_matrix_create(LIS_COMM_WORLD, &A);
+    lis_matrix_set_size(A, n, 0);
+
+    for (int k = 0; k < Ls.outerSize(); ++k) {
+      for (Eigen::SparseMatrix<double>::InnerIterator it(Ls, k); it; ++it) {
+        lis_matrix_set_value(LIS_INS_VALUE, it.row(), it.col(), it.value(), A);
+      }
+    }
+
+    lis_matrix_assemble(A);
+
+    lis_vector_create(LIS_COMM_WORLD, &x);
+    lis_vector_set_size(x, n, 0);
+
+    lis_vector_set_all(1.0, x);
+
+    lis_esolver_create(&esolver);
+
+    lis_esolver_set_option((char *)"-e pi -etol 1e-8 -emaxiter 10000", esolver);
+
+    lis_esolve(A, x, &evalue, esolver);
+
+    lis_esolver_get_iter(esolver, &iter);
+
+    std::cout << "Largest eigenvalue: " << evalue << std::endl;
+    std::cout << "Iterations: " << iter << std::endl;
+
+    lis_esolver_destroy(esolver);
+    lis_matrix_destroy(A);
+    lis_vector_destroy(x);
+  }
 };
 
-int main() {
+int main(int argc, char *argv[]) {
+  lis_initialize(&argc, &argv);
 
   ChallengeTwo c2;
 
@@ -174,6 +221,11 @@ int main() {
 
   // Point 6
   c2.create_social_network_laplasian();
+
+  // Point 7
+  c2.find_largest_eigenvalues();
+
+  lis_finalize();
 
   return 0;
 }
